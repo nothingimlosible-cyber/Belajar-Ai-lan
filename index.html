@@ -2,35 +2,33 @@
 <html>
 <head>
   <title>lan AI</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --bg: #212121; --card: #2f2f2f; --text: #ececec; --accent: #10a37f; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; }
 
-   .header { background: var(--card); padding: 12px 16px; border-bottom: 1px solid #444; text-align: center; font-weight: 600; }
-   .stat { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+  .header { background: var(--card); padding: 12px 16px; border-bottom: 1px solid #444; text-align: center; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+  .stat { font-size: 11px; opacity: 0.6; margin-top: 4px; }
 
     #chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-   .msg { max-width: 80%; padding: 12px 16px; border-radius: 18px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
-   .user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-   .ai { background: var(--card); align-self: flex-start; border-bottom-left-radius: 4px; }
-   .sys { background: #444; align-self: center; font-size: 12px; opacity: 0.8; border-radius: 8px; }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } }
+  .user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .ai { background: var(--card); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .sys { background: #444; align-self: center; font-size: 12px; opacity: 0.8; border-radius: 8px; }
 
-   .input-area { padding: 12px; background: var(--card); border-top: 1px solid #444; }
-   .input-row { display: flex; gap: 8px; align-items: flex-end; }
+  .input-area { padding: 8px 12px 12px; background: var(--card); border-top: 1px solid #444; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .menu { display: flex; gap: 8px; margin-bottom: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .menu button { background: #404040; border: 1px solid #555; color: var(--text); padding: 6px 12px; border-radius: 16px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+  .input-row { display: flex; gap: 8px; align-items: flex-end; }
     #prompt { flex: 1; background: #404040; border: 1px solid #555; border-radius: 20px; padding: 12px 16px; color: var(--text); resize: none; max-height: 120px; font-family: inherit; font-size: 16px; }
-    #prompt:focus { outline: none; border-color: var(--accent); }
-    #sendBtn { background: var(--accent); border: none; width: 40px; height: 40px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    #sendBtn:disabled { opacity: 0.3; }
-
-   .menu { display: flex; gap: 8px; margin-bottom: 8px; overflow-x: auto; }
-   .menu button { background: #404040; border: 1px solid #555; color: var(--text); padding: 6px 12px; border-radius: 16px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-   .menu button:hover { background: #505050; }
+    #sendBtn { background: var(--accent); border: none; width: 44px; height: 44px; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #sendBtn:active { transform: scale(0.95); }
 
     #trainModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; padding: 20px; }
-   .modal-content { background: var(--card); border-radius: 12px; padding: 16px; max-width: 500px; margin: 20px auto; max-height: 80vh; display: flex; flex-direction: column; }
-    #dataLatih { flex: 1; background: #000; border: 1px solid #555; color: var(--text); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 14px; }
+  .modal-content { background: var(--card); border-radius: 12px; padding: 16px; max-width: 500px; margin: 20px auto; max-height: 80vh; display: flex; flex-direction: column; }
+    #dataLatih { flex: 1; background: #000; border: 1px solid #555; color: var(--text); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -40,20 +38,20 @@
   </div>
 
   <div id="chat">
-    <div class="msg sys">lan AI v2.1 siap. Latih aku dulu biar bisa jawab.</div>
+    <div class="msg sys">Halo! Aku lan AI v2.2. Tap "Latih" dulu biar aku bisa jawab ya.</div>
   </div>
 
   <div class="input-area">
     <div class="menu">
       <button onclick="showTrain()">🧠 Latih</button>
-      <button onclick="saveModel()">💾 Simpan Otak</button>
-      <button onclick="document.getElementById('fileInput').click()">📂 Load Otak</button>
+      <button onclick="saveModel()">💾 Simpan</button>
+      <button onclick="document.getElementById('fileInput').click()">📂 Load</button>
       <button onclick="resetModel()">🗑️ Reset</button>
     </div>
     <div class="input-row">
-      <textarea id="prompt" placeholder="Kirim pesan ke lan AI..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();generate()}"></textarea>
+      <textarea id="prompt" placeholder="Kirim pesan..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();generate()}"></textarea>
       <button id="sendBtn" onclick="generate()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
     </div>
   </div>
@@ -62,8 +60,9 @@
     <div class="modal-content">
       <h3 style="margin-bottom:12px">Latih lan AI</h3>
       <p style="font-size:12px;opacity:0.7;margin-bottom:8px">Format: ### Perintah:... ### Jawaban:...</p>
-      <textarea id="dataLatih" placeholder="### Perintah: hai&#10;### Jawaban: Hai juga kak!&#10;&#10;### Perintah: siapa kamu&#10;### Jawaban: Aku lan AI"></textarea>
+      <textarea id="dataLatih"></textarea>
       <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="useExample()" style="background:#555;border:none;color:white;padding:10px;border-radius:8px">Pakai Contoh</button>
         <button onclick="train()" style="flex:1;background:var(--accent);border:none;color:white;padding:10px;border-radius:8px">Mulai Latih</button>
         <button onclick="hideTrain()" style="background:#555;border:none;color:white;padding:10px 16px;border-radius:8px">Tutup</button>
       </div>
@@ -73,7 +72,6 @@
   <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadModel(event)">
 
 <script>
-// ===== LAN AI V2.1 - CHATGPT STYLE =====
 let vocab = [], stoi = {}, itos = {}, model = null;
 const blockSize = 32, nEmbed = 64;
 const START = '<s>', END = '</s>', SEP = '###';
@@ -81,16 +79,19 @@ let training = false;
 
 const chatEl = document.getElementById('chat');
 const promptEl = document.getElementById('prompt');
-const sendBtn = document.getElementById('sendBtn');
 
-// Auto resize textarea
+// Auto resize textarea + scroll ke input pas keyboard muncul
 promptEl.addEventListener('input', () => {
   promptEl.style.height = 'auto';
   promptEl.style.height = Math.min(promptEl.scrollHeight, 120) + 'px';
 });
 
+promptEl.addEventListener('focus', () => {
+  setTimeout(() => chatEl.scrollTop = chatEl.scrollHeight, 300);
+});
+
 function tokenize(text) {
-  return text.toLowerCase().match(/[a-z0-9]+|<[^>]+>|[{}();=<>!+\-*/.,?]|\n|###/g) || ;
+  return text.toLowerCase().match(/[a-z0-9]+|<[^>]+>|[{}();=<>!+\-*/.,?:"']|\n|###/g) || ;
 }
 
 function buildVocab(text) {
@@ -126,7 +127,7 @@ async function train() {
   const text = document.getElementById('dataLatih').value;
   if(!text.trim()) { training = false; return; }
 
-  addMsg('Mulai training lan AI... HP mungkin lag 10-20 detik', 'sys');
+  addMsg('Training... 15 detik ya kak, HP bakal agak lag', 'sys');
   hideTrain();
 
   buildVocab(text);
@@ -155,24 +156,27 @@ async function train() {
 
   document.getElementById('dataLatih').value = '';
   updateStat();
-  addMsg('lan AI selesai belajar! Coba chat sekarang.', 'sys');
+  addMsg('lan AI udah pinter! Coba chat sekarang.', 'sys');
   training = false;
 }
 
 function generate() {
-  if(!model) return addMsg('Latih aku dulu kak! Tap tombol "Latih"', 'sys');
   let promptText = promptEl.value.trim();
   if(!promptText || training) return;
+
+  if(!model) {
+    addMsg('Eh aku belum dilatih kak 😭 Tap tombol "Latih" dulu ya!', 'ai');
+    return;
+  }
 
   addMsg(promptText, 'user');
   promptEl.value = '';
   promptEl.style.height = 'auto';
-  sendBtn.disabled = true;
 
   setTimeout(() => {
     let ctx = [stoi[START], stoi[SEP], stoi['perintah'], stoi[':'],...tokenize(promptText).map(w => stoi[w]), stoi[SEP], stoi['jawaban'], stoi[':']].filter(x => x!== undefined);
     let out = ;
-    for(let i = 0; i < 80; i++) {
+    for(let i = 0; i < 100; i++) {
       const x = ctx.slice(-blockSize);
       const logits = forward(x);
       const next = logits.indexOf(Math.max(...logits));
@@ -180,8 +184,7 @@ function generate() {
       ctx.push(next);
       out.push(itos);
     }
-    addMsg(out.join('').replace(/ ###/g, '\n').trim() || '...', 'ai');
-    sendBtn.disabled = false;
+    addMsg(out.join('').replace(/ ###/g, '\n').trim() || 'Hmm aku gak ngerti, ajarin dong!', 'ai');
   }, 100);
 }
 
@@ -203,6 +206,20 @@ function updateStat() {
 function showTrain() { document.getElementById('trainModal').style.display = 'block'; }
 function hideTrain() { document.getElementById('trainModal').style.display = 'none'; }
 
+function useExample() {
+  document.getElementById('dataLatih').value = `### Perintah: hai
+### Jawaban: Hai juga kak! Ada yang bisa lan AI bantu?
+
+### Perintah: siapa kamu
+### Jawaban: Aku lan AI, asisten buatan kakak sendiri!
+
+### Perintah: 1+1
+### Jawaban: 1+1 = 2
+
+### Perintah: buatin html button merah
+### Jawaban: <button style="background:red;color:white">Klik</button>`;
+}
+
 function saveModel() {
   if(!model) return addMsg('Latih dulu baru bisa simpan!', 'sys');
   const blob = new Blob([JSON.stringify({vocab, model})], {type: "application/json"});
@@ -221,13 +238,13 @@ function loadModel(e) {
     vocab = data.vocab; model = data.model;
     vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
     updateStat();
-    addMsg('Otak lama berhasil dimuat! lan AI inget semuanya.', 'sys');
+    addMsg('Otak lama berhasil dimuat!', 'sys');
   };
   reader.readAsText(file);
 }
 
 function resetModel() {
-  if(confirm('Yakin reset otak lan AI? Semua ilmu ilang.')) {
+  if(confirm('Yakin reset? Semua ilmu ilang.')) {
     vocab = ; stoi = {}; itos = {}; model = null;
     localStorage.removeItem('lanAI_v2');
     updateStat();
@@ -235,7 +252,6 @@ function resetModel() {
   }
 }
 
-// Auto-load
 const saved = localStorage.getItem('lanAI_v2');
 if(saved) {
   const data = JSON.parse(saved);
