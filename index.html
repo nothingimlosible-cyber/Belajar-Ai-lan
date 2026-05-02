@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>lan AI - Segala Bisa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { --neon: #00ff9d; --bg: #0a0a0a; }
+    body { font-family: 'Consolas', monospace; background: var(--bg); color: var(--neon); padding: 15px; max-width: 700px; margin: auto; }
+    h1 { text-align: center; text-shadow: 0 0 10px var(--neon); }
+    textarea, input { width: 100%; background: #000; color: var(--neon); border: 1px solid var(--neon); padding: 10px; margin: 5px 0; box-sizing: border-box; }
+    button { padding: 10px 15px; margin: 3px; background: var(--neon); color: #000; border: none; font-weight: bold; cursor: pointer; }
+    #chat { background: #111; padding: 15px; height: 50vh; overflow-y: auto; border: 1px solid var(--neon); margin: 10px 0; }
+ .stat { font-size: 11px; opacity: 0.7; text-align: center; }
+ .user { color: #fff; margin: 8px 0; }
+ .ai { color: var(--neon); margin: 8px 0; white-space: pre-wrap; }
+ .sys { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>lan AI v2.0</h1>
+  <div class="stat" id="stat">Brain: Kosong | Siap dilatih apapun</div>
+
+  <div id="chat">
+    <div class="sys">> lan AI v2.0 ready. Ajari aku pake format Perintah + Jawaban.</div>
+  </div>
+
+  <p><b>Latih lan AI:</b> Pake format ini biar nurut</p>
+  <textarea id="dataLatih" rows="6" placeholder="### Perintah: buatin kode html button merah
+### Jawaban: <button style='background:red'>Klik</button>
+
+### Perintah: apa itu react
+### Jawaban: React adalah library JavaScript untuk bikin UI.
+
+### Perintah: bikin puisi jedag jedug
+### Jawaban: Jedag jedug malam ini, bass berdentum di hati..."></textarea>
+  <button onclick="train()">Ajari lan AI</button>
+  <button onclick="saveModel()">Download Otak</button>
+  <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadModel(event)">
+  <button onclick="document.getElementById('fileInput').click()">Load Otak</button>
+
+  <p><b>Perintah ke lan AI:</b></p>
+  <input id="prompt" placeholder="Contoh: buatin kode html button hijau" onkeydown="if(event.key==='Enter')generate()">
+  <button onclick="generate()">Jalankan</button>
+
+<script>
+// ===== LAN AI V2.0 - NGERTI PERINTAH =====
+let vocab = [], stoi = {}, itos = {}, model = null;
+const blockSize = 24; // Naikin biar inget perintah panjang. HP 4GB masih oke
+const nEmbed = 64;
+let training = false;
+
+const START = '<s>'; const END = '</s>'; const SEP = '###';
+
+function tokenize(text) {
+  // Ngerti simbol, tag HTML, sama enter
+  return text.toLowerCase().match(/[a-z0-9]+|<[^>]+>|[{}();=<>!+\-*/]|###|\n/g) || ;
+}
+
+function buildVocab(text) {
+  const words = [START, END,...tokenize(text)];
+  vocab = [...new Set([...vocab,...words])];
+  stoi = {}; itos = {};
+  vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
+}
+
+function initModel() {
+  const V = vocab.length;
+  model = {
+    tokEmbed: Array(V).fill().map(() => Array(nEmbed).fill().map(() => (Math.random()-0.5)*0.1)),
+    posEmbed: Array(blockSize).fill().map(() => Array(nEmbed).fill().map(() => (Math.random()-0.5)*0.1)),
+    W1: Array(nEmbed).fill().map(() => Array(nEmbed*4).fill().map(() => (Math.random()-0.5)*0.1)),
+    W2: Array(nEmbed*4).fill().map(() => Array(V).fill().map(() => (Math.random()-0.5)*0.1)),
+  };
+  updateStat();
+}
+
+function forward(x) {
+  let h = x.map((tok, i) => model.tokEmbed[tok].map((e, j) => e + model.posEmbed[i][j]));
+  let avg = Array(nEmbed).fill(0);
+  h.forEach(v => v.forEach((e, j) => avg[j] += e / h.length));
+  let h1 = model.W1.map(row => Math.max(0, row.reduce((s, w, j) => s + w * avg[j], 0)));
+  let logits = model.W2.map(row => row.reduce((s, w, j) => s + w * h1[j], 0));
+  return logits;
+}
+
+async function train() {
+  if(training) return;
+  training = true;
+  const text = document.getElementById('dataLatih').value;
+  if(!text.trim()) { training = false; return; }
+
+  log(`Training lan AI... Ini bakal 10-20 detik`, 'sys');
+  buildVocab(text);
+  if(!model || model.tokEmbed.length!== vocab.length) initModel();
+
+  const tokens = [START,...tokenize(text), END].map(w => stoi[w]);
+  for(let epoch = 0; epoch < 150; epoch++) {
+    for(let i = 0; i < tokens.length - blockSize; i++) {
+      const x = tokens.slice(i, i + blockSize);
+      const y = tokens[i + blockSize];
+      const logits = forward(x);
+      const maxLogit = Math.max(...logits);
+      const exps = logits.map(l => Math.exp(l - maxLogit));
+      const sumExps = exps.reduce((a,b) => a+b, 0);
+      const probs = exps.map(e => e / sumExps);
+      const lr = 0.05;
+      const dlogits = probs.map((p, j) => j === y? p - 1 : p);
+      for(let j = 0; j < model.W2.length; j++) {
+        for(let k = 0; k < model.W2[j].length; k++) {
+          model.W2[j][k] -= lr * dlogits[k] * 0.01;
+        }
+      }
+    }
+    if(epoch % 30 === 0) await new Promise(r => setTimeout(r, 10));
+  }
+
+  document.getElementById('dataLatih').value = '';
+  updateStat();
+  log(`lan AI selesai belajar! Coba suruh apa aja.`, 'sys');
+  training = false;
+}
+
+function generate() {
+  if(!model) return log('Ajari aku dulu pake data latih!', 'sys');
+  let promptText = document.getElementById('prompt').value;
+  if(!promptText.trim()) return;
+
+  log(promptText, 'user');
+  document.getElementById('prompt').value = '';
+
+  // Format input biar AI ngerti ini perintah
+  let ctx = [stoi[START], stoi[SEP], stoi['perintah'], stoi[':'],...tokenize(promptText).map(w => stoi[w]), stoi[SEP], stoi['jawaban'], stoi[':']].filter(x => x!== undefined);
+
+  let out = ;
+  for(let i = 0; i < 100; i++) { // max 100 token
+    const x = ctx.slice(-blockSize);
+    const logits = forward(x);
+    const next = logits.indexOf(Math.max(...logits));
+    if(next === stoi[END] || next === stoi[SEP]) break;
+    ctx.push(next);
+    out.push(itos);
+  }
+  log(out.join('').replace(/ ###/g, '\n'), 'ai');
+}
+
+function log(msg, type='sys') {
+  const el = document.getElementById('chat');
+  el.innerHTML += `<div class="${type}">> ${type==='user'?'Kamu':type==='ai'?'lan AI':'Sistem'}: ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateStat() {
+  const v = vocab.length;
+  const p = model? (model.tokEmbed.length * nEmbed + model.W1.length * nEmbed * 4 + model.W2.length * vocab.length) : 0;
+  const iq = Math.min(200, Math.floor(v * 0.3 + p * 0.0005));
+  document.getElementById('stat').innerText = `Brain: ${p} params | Vocab: ${v} kata | IQ: ${iq}`;
+}
+
+function saveModel() {
+  const blob = new Blob([JSON.stringify({vocab, model})], {type: "application/json"});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lan-ai-brain.json`;
+  a.click();
+}
+
+function loadModel(e) {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const data = JSON.parse(ev.target.result);
+    vocab = data.vocab; model = data.model;
+    vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
+    updateStat();
+    log('Otak lama berhasil dimuat. lan AI inget semua perintah!', 'sys');
+  };
+  reader.readAsText(file);
+}
+
+// Auto-load
+const saved = localStorage.getItem('lanAI_v2');
+if(saved) {
+  const data = JSON.parse(saved);
+  vocab = data.vocab; model = data.model;
+  vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
+  updateStat();
+  log('lan AI udah pinter dari sesi kemarin.', 'sys');
+}
+setInterval(() => { if(model) localStorage.setItem('lanAI_v2', JSON.stringify({vocab, model})); }, 5000);
+</script>
+</body>
+</html>
