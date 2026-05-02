@@ -2,232 +2,112 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lan AI</title>
+<title>lan AI - No Login</title>
+<script type="module">
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+window.pipeline = pipeline;
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,sans-serif;background:#212121;color:#ececec;height:100dvh;display:flex;flex-direction:column}
-.header{background:#2f2f2f;padding:12px;text-align:center;font-weight:600;border-bottom:1px solid #444}
+.header{background:#2f2f2f;padding:14px;text-align:center;font-weight:600;border-bottom:1px solid #444}
 #stat{font-size:11px;opacity:0.6;margin-top:4px}
 #chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:85%;padding:12px 16px;border-radius:18px;line-height:1.5;white-space:pre-wrap}
 .user{background:#10a37f;color:white;align-self:flex-end;border-bottom-right-radius:4px}
 .ai{background:#2f2f2f;align-self:flex-start;border-bottom-left-radius:4px}
-.sys{background:#444;align-self:center;font-size:12px;border-radius:8px}
-.box{padding:8px 12px;background:#2f2f2f;border-top:1px solid #444}
+.sys{background:#444;align-self:center;font-size:12px}
+.box{padding:10px;background:#2f2f2f;border-top:1px solid #444}
 .row{display:flex;gap:8px;align-items:flex-end}
 #txt{flex:1;background:#404040;border:none;border-radius:20px;padding:12px 16px;color:#ececec;resize:none;max-height:120px;font-size:16px}
 #btn{background:#10a37f;border:none;width:44px;height:44px;border-radius:50%;color:white;font-size:20px}
-.menu{display:flex;gap:8px;margin-bottom:8px}
-.menu button{background:#404040;border:none;color:#ececec;padding:6px 12px;border-radius:16px;font-size:12px}
-#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);padding:20px;z-index:100}
-.modal-box{background:#2f2f2f;border-radius:12px;padding:16px;max-width:500px;margin:20px auto}
-#dataLatih{width:100%;height:200px;background:#000;border:1px solid #555;color:#ececec;padding:12px;border-radius:8px;font-family:monospace;font-size:13px}
+#btn:disabled{opacity:0.4}
 </style>
 </head>
 <body>
   <div class="header">
-    lan AI
-    <div id="stat">Loading...</div>
+    lan AI - No Login
+    <div id="stat">Loading otak 100MB...</div>
   </div>
-  <div id="chat"><div class="msg ai">Halo kak! Ada yang bisa dibantu?</div></div>
+  <div id="chat"><div class="msg sys">Tunggu 30 detik kak, lan AI lagi download otak ke HP kamu...</div></div>
   <div class="box">
-    <div class="menu">
-      <button id="btnLatih">🧠 Latih</button>
-      <button id="btnSimpan">💾 Simpan</button>
-      <button id="btnReset">🗑️ Reset</button>
-    </div>
     <div class="row">
-      <textarea id="txt" placeholder="Ketik pesan..." rows="1"></textarea>
-      <button id="btn">↑</button>
-    </div>
-  </div>
-  <div id="modal">
-    <div class="modal-box">
-      <h3>Latih lan AI</h3>
-      <textarea id="dataLatih" placeholder="### Perintah: hai&#10;### Jawaban: Hai juga!"></textarea>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button id="btnMulaiLatih" style="flex:1;background:#10a37f;border:none;color:white;padding:10px;border-radius:8px">Mulai Latih</button>
-        <button id="btnTutup" style="background:#555;border:none;color:white;padding:10px;border-radius:8px">Tutup</button>
-      </div>
+      <textarea id="txt" placeholder="Loading..." rows="1" disabled></textarea>
+      <button id="btn" disabled>↑</button>
     </div>
   </div>
 
-<script>
-let vocab = [], stoi = {}, itos = {}, model = null;
-const blockSize = 24, nEmbed = 48;
-const START = '<s>', END = '</s>', SEP = '###';
-let training = false;
+<script type="module">
+let generator;
+let chatHistory = "Kamu adalah lan AI, AI buatan kakak. Jawab santai, gaul, pake 'kak'. Jago JavaScript. Kalo gak tau bilang gak tau.\n";
 
-const chat = document.getElementById('chat');
+const chatDiv = document.getElementById('chat');
 const txt = document.getElementById('txt');
 const btn = document.getElementById('btn');
+const stat = document.getElementById('stat');
 
-btn.addEventListener('click', generate);
-txt.addEventListener('keydown', e => {
-  if(e.key === 'Enter' &&!e.shiftKey) { e.preventDefault(); generate(); }
-});
-txt.addEventListener('input', () => {
-  txt.style.height = 'auto';
-  txt.style.height = Math.min(txt.scrollHeight, 120) + 'px';
-});
+async function init() {
+  try {
+    generator = await window.pipeline('text-generation', 'Xenova/Qwen1.5-0.5B-Chat', {
+      progress_callback: (x) => {
+        if(x.status === 'progress') {
+          stat.textContent = `Download ${x.progress.toFixed(0)}%... Sabar ya kak`;
+        }
+      }
+    });
+    stat.textContent = 'Online | 100% Offline | No Login';
+    addMsg('lan AI udah ready kak! Otak 100MB udah di HP. Chat sepuasnya, gratis, gak perlu login 🔥', 'ai');
+    txt.disabled = false; btn.disabled = false; txt.placeholder = 'Ketik pesan...';
+  } catch(e) {
+    addMsg('Gagal load. Pake Chrome/Edge terbaru ya kak!', 'sys');
+  }
+}
+init();
 
-document.getElementById('btnLatih').addEventListener('click', () => {
-  document.getElementById('modal').style.display = 'block';
-});
-document.getElementById('btnTutup').addEventListener('click', () => {
-  document.getElementById('modal').style.display = 'none';
-});
-document.getElementById('btnMulaiLatih').addEventListener('click', train);
-document.getElementById('btnSimpan').addEventListener('click', saveModel);
-document.getElementById('btnReset').addEventListener('click', resetModel);
+btn.onclick = kirim;
+txt.onkeydown = e => { if(e.key==='Enter' &&!e.shiftKey){ e.preventDefault(); kirim(); }};
+txt.oninput = () => { txt.style.height='auto'; txt.style.height=txt.scrollHeight+'px'; };
 
 function addMsg(text, type) {
   const div = document.createElement('div');
-  div.className = `msg ${type}`;
+  div.className = 'msg ' + type;
   div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
+  chatDiv.appendChild(div);
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+  return div;
 }
 
-function tokenize(text) {
-  return text.toLowerCase().match(/[a-z0-9]+|[{}();=<>!+\-*/.,?:"']|\n|###/g) || [];
-}
-
-function buildVocab(text) {
-  const words = [START, END,...tokenize(text)];
-  vocab = [...new Set([...vocab,...words])];
-  stoi = {}; itos = {};
-  vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
-}
-
-function initModel() {
-  const V = vocab.length;
-  model = {
-    tokEmbed: Array(V).fill().map(() => Array(nEmbed).fill().map(() => (Math.random()-0.5)*0.1)),
-    posEmbed: Array(blockSize).fill().map(() => Array(nEmbed).fill().map(() => (Math.random()-0.5)*0.1)),
-    W1: Array(nEmbed).fill().map(() => Array(nEmbed*2).fill().map(() => (Math.random()-0.5)*0.1)),
-    W2: Array(nEmbed*2).fill().map(() => Array(V).fill().map(() => (Math.random()-0.5)*0.1)),
-  };
-  updateStat();
-}
-
-function forward(x) {
-  let h = x.map((tok, i) => model.tokEmbed[tok].map((e, j) => e + model.posEmbed[i][j]));
-  let avg = Array(nEmbed).fill(0);
-  h.forEach(v => v.forEach((e, j) => avg[j] += e / h.length));
-  let h1 = model.W1.map(row => Math.max(0, row.reduce((s, w, j) => s + w * avg[j], 0)));
-  let logits = model.W2.map(row => row.reduce((s, w, j) => s + w * h1[j], 0));
-  return logits;
-}
-
-async function train() {
-  if(training) return;
-  training = true;
-  const text = document.getElementById('dataLatih').value;
-  if(!text.trim()) { training = false; return; }
-  addMsg('Training...', 'sys');
-  document.getElementById('modal').style.display = 'none';
-  buildVocab(text);
-  if(!model || model.tokEmbed.length!== vocab.length) initModel();
-  const tokens = [START,...tokenize(text), END].map(w => stoi[w]);
-  for(let epoch = 0; epoch < 60; epoch++) {
-    for(let i = 0; i < tokens.length - blockSize; i++) {
-      const x = tokens.slice(i, i + blockSize);
-      const y = tokens[i + blockSize];
-      const logits = forward(x);
-      const maxLogit = Math.max(...logits);
-      const exps = logits.map(l => Math.exp(l - maxLogit));
-      const sumExps = exps.reduce((a,b) => a+b, 0);
-      const probs = exps.map(e => e / sumExps);
-      const lr = 0.05;
-      const dlogits = probs.map((p, j) => j === y? p - 1 : p);
-      for(let j = 0; j < model.W2.length; j++) {
-        for(let k = 0; k < model.W2[j].length; k++) {
-          model.W2[j][k] -= lr * dlogits[k] * 0.01;
-        }
-      }
-    }
-    if(epoch % 20 === 0) await new Promise(r => setTimeout(r, 10));
-  }
-  document.getElementById('dataLatih').value = '';
-  updateStat();
-  addMsg('Selesai belajar!', 'sys');
-  training = false;
-}
-
-// UDAH GAK ADA PESAN "BELUM DILATIH" LAGI
-function generate() {
+async function kirim() {
   let text = txt.value.trim();
-  if(!text || training) return;
+  if(!text || btn.disabled ||!generator) return;
+
   addMsg(text, 'user');
-  txt.value = '';
-  txt.style.height = 'auto';
+  chatHistory += `Kakak: ${text}\nlan AI:`;
+  txt.value = ''; txt.style.height='auto'; btn.disabled = true;
 
-  setTimeout(() => {
-    if(!model) {
-      // INI JAWABAN DEFAULT BARU. GAK NGAKU-NGAKU AI LATIHAN
-      addMsg('Maaf kak, aku lagi maintenance. Coba lagi nanti ya!', 'ai');
-      return;
-    }
-    let ctx = [stoi[START], stoi[SEP], stoi['perintah'], stoi[':'],...tokenize(text).map(w => stoi[w]), stoi[SEP], stoi['jawaban'], stoi[':']].filter(x => x!== undefined);
-    let out = [];
-    for(let i = 0; i < 60; i++) {
-      const x = ctx.slice(-blockSize);
-      const logits = forward(x);
-      const next = logits.indexOf(Math.max(...logits));
-      if(next === stoi[END] || next === stoi[SEP]) break;
-      ctx.push(next);
-      out.push(itos);
-    }
-    addMsg(out.join('').replace(/ ###/g, '\n').trim() || 'Aku kurang paham maksudnya kak', 'ai');
-  }, 200);
-}
+  const typing = addMsg('lan AI mikir...', 'ai');
+  stat.textContent = 'Sedang mikir...';
 
-function updateStat() {
-  const v = vocab.length;
-  const p = model? (model.tokEmbed.length * nEmbed + model.W1.length * nEmbed * 2 + model.W2.length * vocab.length) : 0;
-  const iq = Math.min(200, Math.floor(v * 0.5 + p * 0.001));
-  document.getElementById('stat').innerText = `IQ: ${iq} | ${p? 'Online' : 'Offline'}`;
-}
-
-function saveModel() {
-  if(!model) return addMsg('Latih dulu!', 'sys');
-  const blob = new Blob([JSON.stringify({vocab, model})], {type: "application/json"});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `lan-ai-otak.json`;
-  a.click();
-}
-
-function resetModel() {
-  if(confirm('Reset?')) {
-    vocab = []; stoi = {}; itos = {}; model = null;
-    localStorage.removeItem('lanAI_v2');
-    updateStat();
-    chat.innerHTML = '<div class="msg ai">Halo kak! Ada yang bisa dibantu?</div>';
+  try {
+    const result = await generator(chatHistory, {
+      max_new_tokens: 100,
+      temperature: 0.7,
+      do_sample: true,
+      repetition_penalty: 1.1
+    });
+    let reply = result[0].generated_text.split('lan AI:').pop().trim();
+    reply = reply.split('Kakak:')[0].trim();
+    typing.remove();
+    addMsg(reply, 'ai');
+    chatHistory += ` ${reply}\n`;
+    stat.textContent = 'Online | 100% Offline | No Login';
+  } catch(e) {
+    typing.remove();
+    addMsg('Error kak, kepanjangan kayaknya. Coba yang pendek', 'ai');
   }
+
+  btn.disabled = false;
 }
-
-// AUTO LOAD OTAK DARI GITHUB KALO ADA
-fetch('lan-ai-otak.json')
- .then(r => r.json())
- .then(data => {
-    vocab = data.vocab; model = data.model;
-    vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
-    updateStat();
-  })
- .catch(() => {
-    // Kalo gak ada file otak.json, pake localStorage
-    const saved = localStorage.getItem('lanAI_v2');
-    if(saved) {
-      const data = JSON.parse(saved);
-      vocab = data.vocab; model = data.model;
-      vocab.forEach((w, i) => { stoi[w] = i; itos[i] = w; });
-      updateStat();
-    }
-  });
-
-setInterval(() => { if(model) localStorage.setItem('lanAI_v2', JSON.stringify({vocab, model})); }, 5000);
 </script>
 </body>
 </html>
